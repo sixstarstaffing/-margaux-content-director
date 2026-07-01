@@ -5,7 +5,7 @@ This is content-director's voice file. It does NOT restate the Plated voice, it 
 ---
 
 ## A. PLATED voice → load the shared authority (do not duplicate)
-The canonical Plated voice rules live in **`~/.claude/skills/plated-defaults/CONTEXT.md`**. Load sections 1 to 4 before writing any Plated caption:
+The canonical Plated voice rules are **vendored into this repo at `deploy/voice/plated-defaults-CONTEXT.md`** (machine-independent, no Mac path). In production they live in the Supabase `voice_profile` table, GiGi and Margaux read the same source. The Mac skill `~/.claude/skills/plated-defaults/CONTEXT.md` is the upstream to sync FROM, not a runtime dependency. Load sections 1 to 4 before writing any Plated caption:
 - **§1 Anchor (verbatim, never paraphrase):** "Six countries. Six cultures. One night Atlanta plates the world."
 - **§2 Habitat rule:** one mention per surface, never adjacent to the anchor, never the lead.
 - **§3 Voice v2.1 HARD BLOCK (strip before output):** world-class, best-in-class, industry-leading, premier, elevate, redefine, reimagine, delight, exceptional, carefully crafted, unparalleled, seamless, meticulously, above 5 stars, curate(d), bespoke, culinary journey, sensory experience, unforgettable.

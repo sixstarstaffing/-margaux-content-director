@@ -2,6 +2,26 @@
 
 Everything that broke on 2026-07-01 (stale git, dropped SSH killing runs, wrong host/container, empty pasted key, stale files, re-downloads) is fixed by ONE runner: `deploy/ops/margaux-run.sh`. It is idempotent, disconnect-safe, and cron-safe.
 
+## HOW MARGAUX IS TRIGGERED (current, 2026-07-01) · read this first
+Kailin does NOT need this Claude terminal open. Two live paths:
+
+**Option A · drop-and-forget (LIVE).** She drops clips + notes in the "Margaux Daily
+Content" Drive folder (`MARGAUX_DAILY_FOLDER_ID=1Zy_UyarKC_zZ9132Z_7ihxZ-elqnjAy2`).
+Host cron runs the runner at 7am ET (11 UTC) and 10pm ET (02 UTC); the runner lists that
+folder via the Drive API key (`GDRIVE_API_KEY` in `.env.margaux`, set 2026-07-01, key
+restricted to Drive API only), processes today's media, and posts the digest to Discord.
+No command, no terminal. An EMPTY folder exits clean (no stale digest) by design.
+
+**Option B · Discord bot (built, pending token).** `deploy/ops/discord_bot.py` +
+`deploy/ops/start-bot.sh`. Kailin pastes a Drive folder link + "content delivery" in the
+Discord channel; the bot extracts the folder id, runs `margaux-run.sh` on it, digest
+returns to the channel. Needs `DISCORD_BOT_TOKEN` in `.env.margaux` (the REAL bot token
+from Discord Dev Portal > Bot tab > Reset Token, NOT the App ID or Public Key), then
+`bash deploy/ops/start-bot.sh` to launch the persistent listener.
+
+Delivery for BOTH = the `DISCORD_BUILD_WEBHOOK` digest (one-way out). The bot token is a
+separate thing (two-way, lets her listen). Full sheet stays in `sheets/` for the editor.
+
 ## The fixed home (stop the host/container confusion)
 Margaux lives INSIDE the container, at `/root/margaux-test`.
 - Public SSH lands you on the **host** `srv1770791`. To reach Margaux, step into the container:

@@ -51,6 +51,19 @@ def frame_for(rec):
     return rec.get("path")  # photo (HEIC already normalized to jpg by triage)
 
 
+def frames_for(rec, max_frames=3):
+    """Multiple stills per VIDEO in time order (so the model can read motion/sequence,
+    not judge from one frozen frame). One image for a photo."""
+    if rec.get("type") == "video":
+        fr = sorted(rec.get("all_frames", []), key=lambda f: f.get("t", 0))
+        paths = [f["path"] for f in fr if f.get("path") and os.path.exists(f["path"])]
+        if not paths and rec.get("best_frame") and os.path.exists(rec["best_frame"]):
+            paths = [rec["best_frame"]]
+        return paths[:max_frames]
+    p = rec.get("path")
+    return [p] if p and os.path.exists(p) else []
+
+
 def load_notes(folder, root):
     """Read the creator's one-line notes (who/what per clip) and map file-number -> note.
     Matches Kailin's natural style: lines like '5054 Tnaryl in the car with plated supplies'
@@ -91,7 +104,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--folder", required=True)
     ap.add_argument("--model", default="claude-sonnet-5")
-    ap.add_argument("--max-images", type=int, default=48)  # full-folder coverage
+    ap.add_argument("--max-images", type=int, default=60)  # total FRAME budget (strips)
     ap.add_argument("--out", default="routing-sheet.md")
     a = ap.parse_args()
 
@@ -110,43 +123,55 @@ def main():
     manifest = run_triage(root, a.folder)
     records = manifest.get("records", [])
 
-    # gather assets that have a usable frame, then send the BEST max_images (not the
-    # first N): rank assessed-over-rejected, then by score, so the cap never silently
-    # drops a gem just because of file order.
+    # rank assets best-first (assessed over rejected, then score); each carries its
+    # frame strip (up to 3 stills per video, 1 per photo).
     ranked = []
     for r in records:
-        fp = frame_for(r)
-        if not (fp and os.path.exists(fp)):
+        frs = frames_for(r)
+        if not frs:
             continue
         if r.get("type") == "video" and r.get("all_frames"):
             sc = max((f.get("score", 0) or 0) for f in r["all_frames"])
         else:
             sc = r.get("score") or 0
         rank = (0 if r.get("verdict") == "auto-rejected" else 1, sc)
-        ranked.append((rank, r, fp))
+        ranked.append((rank, r, frs))
     ranked.sort(key=lambda x: x[0], reverse=True)
-    dropped = max(0, len(ranked) - a.max_images)
-    assets = [(r, fp) for _, r, fp in ranked[:a.max_images]]
 
     # build the multimodal message: filename label + its frame, interleaved
     content = [{"type": "text", "text":
-        "You are MARGAUX, the Content Director. Below are best frames from one real day of "
-        "Kailin's raw footage. Produce the ONE daily routing sheet per OUTPUT-TEMPLATE, using "
-        "your KNOWLEDGE (Sevyn method + Kailin's voice), rubric, and routing rules. Route "
-        "personal-first. Reject what is weak; for anything held, say why.\n"
-        "IMPORTANT: each image is a single best-frame STILL from a video, you cannot see motion "
-        "or hear audio. Do NOT invent dialogue, on-screen text, or a reveal you can't see. If a "
-        "hook depends on unseen footage, mark it an assumption / shotlist item, do not assert it.\n"
-        "A 'CREATOR NOTE' next to a clip is Kailin telling you exactly who/what is in it, that is "
-        "GROUND TRUTH: use it to route and write accurate hooks, and never contradict it."}]
-    for r, fp in assets:
+        "You are MARGAUX, the Content Director. Below are frames from one real day of Kailin's "
+        "raw footage. Produce the ONE daily routing sheet per OUTPUT-TEMPLATE, using your "
+        "KNOWLEDGE (Sevyn method + Kailin's voice), rubric, and routing rules. Route personal-first. "
+        "Reject what is weak; for anything held, say why.\n"
+        "IMPORTANT: for VIDEOS you get several stills IN TIME ORDER, read the motion/sequence "
+        "between them; for PHOTOS you get one. You cannot HEAR anything unless a TRANSCRIPT is "
+        "given. Do NOT invent dialogue or a reveal you can't see. If a hook depends on unseen "
+        "footage, mark it an assumption / shotlist item.\n"
+        "A 'CREATOR NOTE' is Kailin telling you exactly who/what is in the clip = GROUND TRUTH, "
+        "use it and never contradict it. A 'TRANSCRIPT' is what is actually said in the clip."}]
+    frame_budget = a.max_images
+    sent, shown = 0, 0
+    for _, r, frs in ranked:
+        if sent >= frame_budget:
+            break
+        frs = frs[:max(1, frame_budget - sent)]
         label = f"\n--- {r.get('asset')} ({r.get('type')}) ---"
+        if r.get("type") == "video" and len(frs) > 1:
+            label += f"\n  [{len(frs)} stills from this video, in time order]"
         note = next((v for k, v in notes.items() if k in r.get("asset", "")), None)
         if note:
             label += f"\n  CREATOR NOTE (ground truth): {note}"
+        tr = r.get("transcript")
+        if tr and tr != "PENDING_WHISPER":
+            label += f"\n  TRANSCRIPT: {tr[:500]}"
         content.append({"type": "text", "text": label})
-        content.append({"type": "image", "source": {
-            "type": "base64", "media_type": "image/jpeg", "data": b64(fp)}})
+        for fp in frs:
+            content.append({"type": "image", "source": {
+                "type": "base64", "media_type": "image/jpeg", "data": b64(fp)}})
+        sent += len(frs)
+        shown += 1
+    dropped = len(ranked) - shown
     if dropped:
         content.append({"type": "text", "text":
             f"\n(NOTE: {dropped} more assets not shown due to the image cap; mention that "

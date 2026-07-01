@@ -27,8 +27,8 @@ fi
 # 3) venv + deps: reuse if present, install only when missing (no reinstall every run)
 [ -d .venv ] || python3 -m venv .venv
 . .venv/bin/activate
-python - <<'PY' 2>/dev/null || pip install -q opencv-python-headless scenedetect pillow pillow-heif gdown anthropic
-import anthropic, cv2, scenedetect, PIL, gdown  # noqa
+python - <<'PY' 2>/dev/null || pip install -q opencv-python-headless scenedetect pillow pillow-heif gdown anthropic faster-whisper
+import anthropic, cv2, scenedetect, PIL, gdown, faster_whisper  # noqa
 PY
 
 # 4) resolve the input list. If a daily Drive folder + API key are configured,

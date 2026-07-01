@@ -82,6 +82,14 @@ def cap():
     except Exception:
         pass
     c["whisper"] = which_whisper() is not None and default_whisper_model() is not None
+    c["faster_whisper"] = False
+    if not c["whisper"]:
+        try:
+            import faster_whisper  # noqa
+            c["whisper"] = True
+            c["faster_whisper"] = True
+        except Exception:
+            pass
     return c
 
 
@@ -213,21 +221,35 @@ def extract_frame(video, t, dst):
                     "-y", dst], check=False)
 
 
+_FW = None  # cached faster-whisper model (loaded once per process)
+
+
 def transcribe(video, whisper_bin, model, workdir):
-    """Real whisper.cpp run. Returns transcript text or None."""
-    wav = os.path.join(workdir, "audio.wav")
-    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", video,
-                    "-ar", "16000", "-ac", "1", "-y", wav], check=False)
-    if not os.path.exists(wav):
+    """Transcript text or None. Uses whisper.cpp if a binary+model exist, else
+    faster-whisper (pip, CPU) which reads the video directly."""
+    if whisper_bin and model:
+        wav = os.path.join(workdir, "audio.wav")
+        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", video,
+                        "-ar", "16000", "-ac", "1", "-y", wav], check=False)
+        if os.path.exists(wav):
+            base = os.path.join(workdir, "out")
+            r = subprocess.run([whisper_bin, "-m", model, "-f", wav, "-otxt",
+                                "-of", base, "-nt"], capture_output=True, text=True)
+            txt = base + ".txt"
+            if os.path.exists(txt):
+                return Path(txt).read_text().strip()
+            return r.stdout.strip() or None
+    # faster-whisper fallback
+    global _FW
+    try:
+        if _FW is None:
+            from faster_whisper import WhisperModel
+            _FW = WhisperModel(os.environ.get("FW_MODEL", "base"),
+                               device="cpu", compute_type="int8")
+        segs, _info = _FW.transcribe(video, vad_filter=True)
+        return " ".join(s.text for s in segs).strip() or None
+    except Exception:
         return None
-    base = os.path.join(workdir, "out")
-    r = subprocess.run([whisper_bin, "-m", model, "-f", wav, "-otxt", "-of", base,
-                        "-nt"], capture_output=True, text=True)
-    txt = base + ".txt"
-    if os.path.exists(txt):
-        return Path(txt).read_text().strip()
-    # some builds print to stdout
-    return r.stdout.strip() or None
 
 
 def process_video(video, out, caps, aes, blur_thresh, scenes_max,

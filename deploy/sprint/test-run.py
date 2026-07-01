@@ -15,8 +15,11 @@ Usage:
 import argparse, base64, io, json, os, subprocess, sys
 from pathlib import Path
 
-BRAIN_FILES = ["SKILL.md", "RUBRIC.md", "ROUTING-TREE.md", "HOOKS.md",
-               "PERSONAL-BRAND.md", "FORMATS.md", "BOARDS.md", "OUTPUT-TEMPLATE.md"]
+# KNOWLEDGE.md first (Sevyn method + in-voice playbook = the expertise). Dropped the
+# ops-heavy SKILL.md and BOARDS.md from the prompt (they're orchestration, not judgment)
+# per the prompt review, so she's smarter AND leaner.
+BRAIN_FILES = ["KNOWLEDGE.md", "RUBRIC.md", "ROUTING-TREE.md", "HOOKS.md",
+               "PERSONAL-BRAND.md", "FORMATS.md", "OUTPUT-TEMPLATE.md"]
 
 
 def load_brain(root):

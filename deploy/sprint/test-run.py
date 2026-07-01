@@ -107,10 +107,14 @@ def main():
 
     print(f"sending {len(assets)} frames to {a.model} as Margaux's brain...", file=sys.stderr)
     client = anthropic.Anthropic()
-    msg = client.messages.create(
-        model=a.model, max_tokens=16000,
+    kwargs = dict(
+        model=a.model, max_tokens=12000,
         system="You are MARGAUX, a content director. Follow this brain exactly:\n" + brain,
         messages=[{"role": "user", "content": content}])
+    try:  # sonnet-5 defaults thinking ON and it eats the whole budget; turn it off
+        msg = client.messages.create(thinking={"type": "disabled"}, **kwargs)
+    except Exception:
+        msg = client.messages.create(**kwargs)  # model without a thinking param
     blocks = [getattr(b, "type", "?") for b in msg.content]
     print(f"[api] stop_reason={msg.stop_reason} blocks={blocks} usage={msg.usage}",
           file=sys.stderr)

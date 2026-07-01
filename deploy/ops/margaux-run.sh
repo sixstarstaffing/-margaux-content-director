@@ -16,11 +16,11 @@ export PYTHONUNBUFFERED=1   # so the log streams live (buffering hid progress al
 log "syncing code..."
 git fetch -q origin && git reset -q --hard origin/main
 
-# 2) key from a STORED file, never pasted again. Prefers .env.margaux, then .key.
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-  [ -f .env.margaux ] && { set -a; . ./.env.margaux; set +a; }
-  [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -f .key ] && \
-    export ANTHROPIC_API_KEY="$(tr -d '[:space:]' < .key)"
+# 2) config + secrets from .env.margaux (ALWAYS, so folder-id / api key / webhook
+#    all load), then .key as an API-key fallback. Never pasted again.
+[ -f .env.margaux ] && { set -a; . ./.env.margaux; set +a; }
+if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -f .key ]; then
+  export ANTHROPIC_API_KEY="$(tr -d '[:space:]' < .key)"
 fi
 [ -z "${ANTHROPIC_API_KEY:-}" ] && { log "FATAL: no ANTHROPIC_API_KEY (put it in .env.margaux once)"; exit 2; }
 
@@ -31,8 +31,18 @@ python - <<'PY' 2>/dev/null || pip install -q opencv-python-headless scenedetect
 import anthropic, cv2, scenedetect, PIL, gdown  # noqa
 PY
 
-# 4) download by id list; SKIP files already present (no more 2.4GB every time)
+# 4) resolve the input list. If a daily Drive folder + API key are configured,
+#    list it LIVE so the cron auto-picks-up each day's new content; else static arg.
 IDS="${1:-deploy/sprint/test-file-ids.txt}"
+if [ -n "${MARGAUX_DAILY_FOLDER_ID:-}" ] && [ -n "${GDRIVE_API_KEY:-}" ]; then
+  log "listing daily Drive folder $MARGAUX_DAILY_FOLDER_ID ..."
+  if python deploy/ops/list-drive-folder.py > .daily-ids.txt 2>/dev/null && [ -s .daily-ids.txt ]; then
+    IDS=".daily-ids.txt"; rm -rf flat        # fresh: process exactly today's folder
+    log "daily folder has $(wc -l < .daily-ids.txt) media files"
+  else
+    log "daily folder listing failed; using $IDS"
+  fi
+fi
 mkdir -p flat
 log "downloading from $IDS (skipping ones already here)..."
 n=0

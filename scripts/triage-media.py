@@ -367,8 +367,8 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--blur-thresh", type=float, default=100.0)
-    ap.add_argument("--scenes-max", type=int, default=8)
-    ap.add_argument("--cands-per-scene", type=int, default=3)
+    ap.add_argument("--scenes-max", type=int, default=4)      # fewer scene points
+    ap.add_argument("--cands-per-scene", type=int, default=2)  # 4x2=8 frames/clip, fast
     ap.add_argument("--whisper-model")
     ap.add_argument("--no-whisper", action="store_true")
     a = ap.parse_args()

@@ -40,7 +40,10 @@ if [ -n "${MARGAUX_DAILY_FOLDER_ID:-}" ] && [ -n "${GDRIVE_API_KEY:-}" ]; then
     IDS=".daily-ids.txt"; rm -rf flat        # fresh: process exactly today's folder
     log "daily folder has $(wc -l < .daily-ids.txt) media files"
   else
-    log "daily folder listing failed; using $IDS"
+    # In daily mode an empty folder = nothing dropped today. Exit clean so the cron
+    # NEVER falls back to stale test footage and never sends a misleading digest.
+    log "daily folder has no media today; nothing to do. exiting."
+    exit 0
   fi
 fi
 mkdir -p flat

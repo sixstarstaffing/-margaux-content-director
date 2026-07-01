@@ -1,12 +1,25 @@
 # Margaux Build Sprint · 10 terminal kickoff prompts
 
-One paste per terminal. Open 10 Claude Code terminals on the PC, paste the matching block. WS0 + WS1 run first (critical path); WS2-WS7 wait until Command Center announces WS1 is frozen.
+One paste per terminal. Clone note: the repo name has a leading dash, so we clone into a plain folder `margaux`.
 
-Clone note: the repo name has a leading dash, so we clone into a plain folder `margaux`.
+**LAUNCH ORDER:** (1) open the **Command Center FIRST** (block right below), (2) then **T1 (WS0) + T2 (WS1)**, (3) then T3-T8 once the Command Center says WS1 is frozen.
 
 ---
 
-## T1 · WS0 · Secrets (start now)
+## OPEN FIRST · Command Center (T9)
+```
+You are the Command Center for the Margaux build sprint. You open FIRST, before any contractor terminal, and coordinate the whole build.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md fully. You coordinate, you do NOT build workstreams.
+3. Give Kailin the go: tell her to open T1 (WS0 secrets) and T2 (WS1 schema) next. Announce when WS0 + WS1 are ready so WS2-WS7 can start.
+4. Guard RULE #1: if any terminal reports needing a file on Kailin's Mac, flag it as the POZD failure and stop it.
+5. Run the rollup on a cadence and after each milestone: python deploy/sprint/rollup.py (git-pulls all logs -> posts one consolidated status to Kailin's #build-updates). Keep logs/COMMAND-CENTER-LOG.md.
+6. Surface blockers to Kailin immediately.
+```
+
+---
+
+## T1 · WS0 · Secrets (start after Command Center is up)
 ```
 You are contractor terminal T1 (WS0, Secrets) on the Margaux build sprint.
 1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
@@ -90,14 +103,7 @@ You are contractor terminal T8 (WS7, shared voice) on the Margaux build sprint. 
 ```
 
 ## T9 · Command Center
-```
-You are terminal T9, the Command Center for the Margaux build sprint.
-1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
-2. Read BUILD-SPRINT.md fully. You coordinate, you do not build workstreams.
-3. Announce when WS0 secrets + WS1 schema are ready so WS2-WS7 can start. Guard RULE #1: if any terminal reports needing a Mac file, flag it as the POZD failure and stop it.
-4. Run the rollup on a cadence and after each milestone: python deploy/sprint/rollup.py  (git-pulls all logs -> posts one consolidated status to Kailin's #build-updates). Keep logs/COMMAND-CENTER-LOG.md.
-5. Surface blockers to Kailin immediately.
-```
+See **OPEN FIRST · Command Center** at the top of this file. It launches before everything else.
 
 ## T10 · Spare / Kailin
 ```

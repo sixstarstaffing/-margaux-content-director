@@ -17,8 +17,15 @@ Follow `deploy/sprint/TERMINAL-BOOTSTRAP.md`:
 - **Command Center → Kailin:** the command-center terminal runs `python deploy/sprint/rollup.py` (git pulls all logs, composes a consolidated status, posts to #build-updates). Run it on a cadence or after each contractor milestone.
 - Kailin sees BOTH the raw contractor pings and the command-center rollup, in one channel.
 
+## LAUNCH ORDER (open terminals in THIS order)
+1. **Command Center FIRST** (terminal T9 below). It comes up before everything so it coordinates, captures logs, and announces readiness from minute one. Nothing else starts until it is watching.
+2. Then **WS0 secrets + WS1 schema** (the sequential critical path).
+3. Then **WS2-WS7 fan out**, but only once Command Center announces WS1 is frozen.
+
+(The T-numbers below are just IDs, not launch order. Launch order is the 3 steps above.)
+
 ## Workstreams (10 terminals: 8 WS + Command Center + spare/Kailin)
-Critical path is sequential: **WS0 secrets → WS1 schema** must finish before the rest fan out. Do NOT start WS2/WS5/WS6/WS7 until WS1 is merged (the schema is a frozen contract).
+Critical path is sequential: **Command Center up → WS0 secrets → WS1 schema** before the rest fan out. Do NOT start WS2/WS5/WS6/WS7 until WS1 is merged (the schema is a frozen contract).
 
 | Terminal | WS | Owns | Depends on | Acceptance (real test) |
 |---|---|---|---|---|
@@ -30,7 +37,7 @@ Critical path is sequential: **WS0 secrets → WS1 schema** must finish before t
 | T6 | WS5 | Netlify dashboard (anon read from Supabase) | WS1 | renders a real job's sheet/tracker/shotlist |
 | T7 | WS6 | BrandForge export (Supabase → `content-data.js`/`qa-items.json`) + publish-once | WS1 + BrandForge repo | approved row shows in portal, publishes once to a test dest |
 | T8 | WS7 | Shared voice into `voice_profile` (GiGi + Margaux one source) | WS1 | both read the DB, not a file |
-| T9 | **Command Center** | Coordinate, run `rollup.py`, unblock, keep `logs/COMMAND-CENTER-LOG.md`, guard Rule #1 | none | rollup posts to Kailin; no cross-machine file refs slip in |
+| T9 | **Command Center (OPEN THIS FIRST)** | Coordinate, run `rollup.py`, unblock, keep `logs/COMMAND-CENTER-LOG.md`, guard Rule #1, announce when WS1 is frozen | none, launches first | rollup posts to Kailin; no cross-machine file refs slip in |
 | T10 | Spare / Kailin | Overflow, review, approvals | n/a | n/a |
 
 Estimate: ~3 to 4 focused days. WS0+WS1 first (sequential), then 6 lanes in parallel.

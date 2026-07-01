@@ -16,19 +16,21 @@ pip install -q --upgrade pip
 pip install -q opencv-python-headless scenedetect pillow pillow-heif gdown anthropic \
   || { echo "pip install failed"; exit 1; }
 
-echo "=== download the real Drive folder ==="
-rm -rf dl flat && mkdir -p flat
-gdown --folder "$FOLDER_URL" -O dl --remaining-ok || true
-# flatten every media file (handles the nested Dayinthelife subfolder + same-name dupes)
+echo "=== download each file by ID (reliable for shared files; folder-download is flaky) ==="
+rm -rf flat && mkdir -p flat
 COUNT=0
-while IFS= read -r -d '' f; do
-  cp "$f" "flat/${RANDOM}${RANDOM}_$(basename "$f")" && COUNT=$((COUNT+1))
-done < <(find dl -type f \( -iname '*.mov' -o -iname '*.mp4' -o -iname '*.heic' \
-  -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print0 2>/dev/null)
-echo "  pulled $COUNT media files"
+while read -r id name; do
+  [ -z "$id" ] && continue
+  if gdown -q "https://drive.google.com/uc?id=$id" -O "flat/${id:0:6}_${name}" 2>/dev/null \
+     && [ -s "flat/${id:0:6}_${name}" ]; then
+    COUNT=$((COUNT+1))
+  else
+    echo "  could not fetch $name"
+  fi
+done < deploy/sprint/test-file-ids.txt
+echo "  downloaded $COUNT media files"
 if [ "$COUNT" -eq 0 ]; then
-  echo "!! Got 0 files. The Drive folder must be shared 'Anyone with the link' for the"
-  echo "   VPS to download it (it is not logged into your Google account). Fix sharing and re-run."
+  echo "!! Got 0 files even by ID. Confirm the 'Lifestyle' folder is shared 'Anyone with the link' (that setting also applies to the files inside it)."
   exit 1
 fi
 

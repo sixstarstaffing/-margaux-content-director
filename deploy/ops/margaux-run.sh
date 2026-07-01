@@ -10,6 +10,7 @@ set -uo pipefail
 REPO="${MARGAUX_REPO:-/root/margaux-test}"
 cd "$REPO" 2>/dev/null || { echo "FATAL: repo not at $REPO (set MARGAUX_REPO)"; exit 1; }
 log(){ echo "[$(date '+%F %T')] $*"; }
+export PYTHONUNBUFFERED=1   # so the log streams live (buffering hid progress all day)
 
 # 1) ALWAYS sync to latest code (plain 'git pull' silently stayed behind all day)
 log "syncing code..."

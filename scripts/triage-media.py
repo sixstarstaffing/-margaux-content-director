@@ -239,14 +239,23 @@ def process_video(video, out, caps, aes, blur_thresh, scenes_max,
         rec["notes"].append("ffmpeg missing, cannot read video")
         return rec
 
-    if caps["scenedetect"]:
+    # PySceneDetect decodes every frame, which is minutes-per-clip on large 4K video.
+    # For big files, skip the full scan and use fast ffmpeg seek sampling instead.
+    try:
+        big = video.stat().st_size > 40 * 1024 * 1024   # >40MB
+    except Exception:
+        big = False
+    if caps["scenedetect"] and not big:
         try:
             segs = scene_midpoints(str(video))
         except Exception as e:
             rec["notes"].append(f"scenedetect failed ({e}), interval fallback")
             segs = None
     else:
-        rec["notes"].append("scenedetect not installed, interval fallback")
+        if big:
+            rec["notes"].append("large clip: fast interval sampling (full scene scan skipped for speed)")
+        else:
+            rec["notes"].append("scenedetect not installed, interval fallback")
         segs = None
     if segs is None:
         d = duration(str(video))

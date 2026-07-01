@@ -48,7 +48,7 @@ def frame_for(rec):
     return rec.get("path")  # photo (HEIC already normalized to jpg by triage)
 
 
-def b64(path, max_px=1024):
+def b64(path, max_px=768):
     """Downscale to <=max_px long edge + re-encode JPEG, so the API request stays
     small (Claude resizes internally anyway; we just avoid the 32MB request cap)."""
     from PIL import Image
@@ -63,7 +63,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--folder", required=True)
     ap.add_argument("--model", default="claude-sonnet-5")
-    ap.add_argument("--max-images", type=int, default=16)
+    ap.add_argument("--max-images", type=int, default=48)  # full-folder coverage
     ap.add_argument("--out", default="routing-sheet.md")
     a = ap.parse_args()
 
@@ -117,7 +117,7 @@ def main():
     print(f"sending {len(assets)} frames to {a.model} as Margaux's brain...", file=sys.stderr)
     client = anthropic.Anthropic()
     kwargs = dict(
-        model=a.model, max_tokens=12000,
+        model=a.model, max_tokens=16000,
         system="You are MARGAUX, a content director. Follow this brain exactly:\n" + brain,
         messages=[{"role": "user", "content": content}])
     try:  # sonnet-5 defaults thinking ON and it eats the whole budget; turn it off

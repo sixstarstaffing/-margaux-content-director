@@ -12,7 +12,7 @@ Usage:
   python deploy/sprint/test-run.py --folder ./content [--model claude-sonnet-5] \
       [--max-images 24] [--out routing-sheet.md]
 """
-import argparse, base64, json, os, subprocess, sys
+import argparse, base64, io, json, os, subprocess, sys
 from pathlib import Path
 
 BRAIN_FILES = ["SKILL.md", "RUBRIC.md", "ROUTING-TREE.md", "HOOKS.md",
@@ -48,16 +48,22 @@ def frame_for(rec):
     return rec.get("path")  # photo (HEIC already normalized to jpg by triage)
 
 
-def b64(path):
-    with open(path, "rb") as f:
-        return base64.standard_b64encode(f.read()).decode()
+def b64(path, max_px=1024):
+    """Downscale to <=max_px long edge + re-encode JPEG, so the API request stays
+    small (Claude resizes internally anyway; we just avoid the 32MB request cap)."""
+    from PIL import Image
+    img = Image.open(path).convert("RGB")
+    img.thumbnail((max_px, max_px))
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=80)
+    return base64.standard_b64encode(buf.getvalue()).decode()
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--folder", required=True)
     ap.add_argument("--model", default="claude-sonnet-5")
-    ap.add_argument("--max-images", type=int, default=24)
+    ap.add_argument("--max-images", type=int, default=16)
     ap.add_argument("--out", default="routing-sheet.md")
     a = ap.parse_args()
 

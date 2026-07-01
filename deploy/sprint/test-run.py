@@ -51,6 +51,31 @@ def frame_for(rec):
     return rec.get("path")  # photo (HEIC already normalized to jpg by triage)
 
 
+def load_notes(folder, root):
+    """Read the creator's one-line notes (who/what per clip) and map file-number -> note.
+    Matches Kailin's natural style: lines like '5054 Tnaryl in the car with plated supplies'
+    or '5054: ...' or '5054 - ...'. The number is matched as a substring of the filename.
+    Looks for notes.txt/notes.md in the folder, else deploy/sprint/notes.txt in the repo."""
+    import re
+    text = ""
+    for c in (os.path.join(folder, "notes.txt"), os.path.join(folder, "notes.md"),
+              os.path.join(root, "deploy", "sprint", "notes.txt")):
+        if os.path.exists(c):
+            text = open(c).read()
+            break
+    notes = {}
+    for line in text.splitlines():
+        line = line.strip().lstrip("*#-•> \t").strip()
+        m = re.search(r"\b(\d{3,5})\b", line)
+        if not m:
+            continue
+        key = m.group(1)
+        note = line[m.end():].lstrip(" :.-–—\t").strip()
+        if note:
+            notes[key] = note
+    return notes
+
+
 def b64(path, max_px=768):
     """Downscale to <=max_px long edge + re-encode JPEG, so the API request stays
     small (Claude resizes internally anyway; we just avoid the 32MB request cap)."""
@@ -79,6 +104,9 @@ def main():
 
     root = Path(__file__).resolve().parents[2]  # repo root
     brain = load_brain(root)
+    notes = load_notes(a.folder, str(root))     # creator's who/what notes (ground truth)
+    if notes:
+        print(f"loaded {len(notes)} creator notes", file=sys.stderr)
     manifest = run_triage(root, a.folder)
     records = manifest.get("records", [])
 
@@ -102,13 +130,20 @@ def main():
 
     # build the multimodal message: filename label + its frame, interleaved
     content = [{"type": "text", "text":
-        "You are MARGAUX, the Content Director. Below are the best frames from a real "
-        "day of Kailin's footage (the 6/23 batch). Using your brain (rubric, routing, "
-        "hooks, voice, boards) produce the ONE daily routing sheet per OUTPUT-TEMPLATE.md. "
-        "Route personal-first. Be honest: reject what is weak, and for anything held, say "
-        "why. This is a real test of your judgment. Filenames precede each frame."}]
+        "You are MARGAUX, the Content Director. Below are best frames from one real day of "
+        "Kailin's raw footage. Produce the ONE daily routing sheet per OUTPUT-TEMPLATE, using "
+        "your KNOWLEDGE (Sevyn method + Kailin's voice), rubric, and routing rules. Route "
+        "personal-first. Reject what is weak; for anything held, say why.\n"
+        "IMPORTANT: each image is a single best-frame STILL from a video, you cannot see motion "
+        "or hear audio. Do NOT invent dialogue, on-screen text, or a reveal you can't see. If a "
+        "hook depends on unseen footage, mark it an assumption / shotlist item, do not assert it.\n"
+        "A 'CREATOR NOTE' next to a clip is Kailin telling you exactly who/what is in it, that is "
+        "GROUND TRUTH: use it to route and write accurate hooks, and never contradict it."}]
     for r, fp in assets:
-        label = f"\n--- {r.get('asset')} ({r.get('type')}) verdict-so-far={r.get('verdict')} ---"
+        label = f"\n--- {r.get('asset')} ({r.get('type')}) ---"
+        note = next((v for k, v in notes.items() if k in r.get("asset", "")), None)
+        if note:
+            label += f"\n  CREATOR NOTE (ground truth): {note}"
         content.append({"type": "text", "text": label})
         content.append({"type": "image", "source": {
             "type": "base64", "media_type": "image/jpeg", "data": b64(fp)}})

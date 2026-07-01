@@ -177,7 +177,7 @@ def main():
             f"\n(NOTE: {dropped} more assets not shown due to the image cap; mention that "
             "coverage was capped for this test run.)"})
 
-    print(f"sending {len(assets)} frames to {a.model} as Margaux's brain...", file=sys.stderr)
+    print(f"sending {sent} frames ({shown} assets) to {a.model} as Margaux's brain...", file=sys.stderr)
     client = anthropic.Anthropic()
     kwargs = dict(
         model=a.model, max_tokens=16000,
@@ -201,7 +201,7 @@ def main():
     print("\n" + "=" * 70 + "\nMARGAUX ROUTING SHEET (real run)\n" + "=" * 70 + "\n")
     print(sheet)
     print("\n" + "=" * 70)
-    print(f"saved -> {a.out} · assets shown {len(assets)} · dropped {dropped}", file=sys.stderr)
+    print(f"saved -> {a.out} · assets shown {shown} · frames {sent} · dropped {dropped}", file=sys.stderr)
     if not sheet.strip():
         print("FAILED: empty sheet (see [api] line above)", file=sys.stderr)
         sys.exit(3)  # never report success on empty output

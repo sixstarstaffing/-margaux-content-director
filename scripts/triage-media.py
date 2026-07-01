@@ -131,17 +131,30 @@ class Aesthetic:
         return _aesthetic_proxy(m)
 
 
-def reject_reason(m, blur_thresh):
+def quality_note(m, blur_thresh):
+    """Returns (hard_reject_or_None, soft_flag_or_None).
+
+    Raw/low-light/handheld footage IS this brand's aesthetic (RUBRIC authenticity
+    premium), so blur and darkness are SOFT FLAGS the model adjudicates, NOT gates
+    that kill an asset before the model ever sees it. Only truly unusable frames
+    hard-reject. (This gate previously auto-killed ~47% of real founder footage,
+    reproducing the exact 'good content silently ignored' failure it exists to stop.)"""
     if m is None:
-        return "unreadable"
+        return "unreadable", None       # only genuine hard reject: file won't decode
     lap, dark, bright, _ = m
-    if lap < blur_thresh:
-        return f"blurry (sharpness {lap:.0f} < {blur_thresh})"
-    if dark > 0.6:
-        return "underexposed (mostly black)"
-    if bright > 0.6:
-        return "blown out (mostly white)"
-    return None
+    if bright > 0.9:
+        return "blown out (near-total white, unrecoverable)", None
+    # Blur and darkness are NEVER hard kills. The model + authenticity premium decide,
+    # because raw/handheld/low-light IS this brand's look. A Laplacian number must not
+    # kill founder content before the model ever sees it.
+    soft = None
+    if lap < 30:
+        soft = f"very soft/blurry (sharpness {lap:.0f}) - likely unusable, model decides"
+    elif lap < blur_thresh:
+        soft = f"soft/handheld (sharpness {lap:.0f}) - keep if the moment carries it"
+    elif dark > 0.7:
+        soft = "low-light/moody - on-brand if intentional"
+    return None, soft
 
 
 # ---------- video ----------
@@ -277,10 +290,12 @@ def process_video(video, out, caps, aes, blur_thresh, scenes_max,
             continue
         if caps["opencv"]:
             m = _metrics(best["path"])
-            rej = reject_reason(m, blur_thresh)       # None-safe: unreadable -> reject
+            rej, soft = quality_note(m, blur_thresh)  # blur/dark = soft flag, not a kill
         else:
-            rej = None  # no quality gate without opencv, keep frame (flagged above)
+            rej, soft = None, None
         best["rejected"] = rej
+        if soft:
+            best["flag"] = soft
         rec["all_frames"].append(best)
         if rej is None:
             kept += 1
@@ -327,10 +342,13 @@ def process_photo(photo, out, caps, aes, blur_thresh):
     m = _metrics(str(p)) if caps["opencv"] else None
     rec["path"] = str(p)
     rec["score"] = aes.score(str(p), m) if caps["opencv"] else None
-    rej = reject_reason(m, blur_thresh) if caps["opencv"] else None
-    if rej:
-        rec["verdict"] = "auto-rejected"
-        rec["notes"].append(rej)
+    if caps["opencv"]:
+        rej, soft = quality_note(m, blur_thresh)
+        if rej:
+            rec["verdict"] = "auto-rejected"
+            rec["notes"].append(rej)
+        elif soft:
+            rec["notes"].append(soft)
     return rec
 
 

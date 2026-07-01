@@ -79,14 +79,23 @@ def main():
     manifest = run_triage(root, a.folder)
     records = manifest.get("records", [])
 
-    # gather assets that have a usable frame, cap to keep the call sane
-    assets = []
+    # gather assets that have a usable frame, then send the BEST max_images (not the
+    # first N): rank assessed-over-rejected, then by score, so the cap never silently
+    # drops a gem just because of file order.
+    ranked = []
     for r in records:
         fp = frame_for(r)
-        if fp and os.path.exists(fp):
-            assets.append((r, fp))
-    dropped = max(0, len(assets) - a.max_images)
-    assets = assets[:a.max_images]
+        if not (fp and os.path.exists(fp)):
+            continue
+        if r.get("type") == "video" and r.get("all_frames"):
+            sc = max((f.get("score", 0) or 0) for f in r["all_frames"])
+        else:
+            sc = r.get("score") or 0
+        rank = (0 if r.get("verdict") == "auto-rejected" else 1, sc)
+        ranked.append((rank, r, fp))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    dropped = max(0, len(ranked) - a.max_images)
+    assets = [(r, fp) for _, r, fp in ranked[:a.max_images]]
 
     # build the multimodal message: filename label + its frame, interleaved
     content = [{"type": "text", "text":
@@ -113,8 +122,8 @@ def main():
         messages=[{"role": "user", "content": content}])
     try:  # sonnet-5 defaults thinking ON and it eats the whole budget; turn it off
         msg = client.messages.create(thinking={"type": "disabled"}, **kwargs)
-    except Exception:
-        msg = client.messages.create(**kwargs)  # model without a thinking param
+    except TypeError:  # only if the SDK rejects the kwarg; do NOT swallow real API errors
+        msg = client.messages.create(**kwargs)
     blocks = [getattr(b, "type", "?") for b in msg.content]
     print(f"[api] stop_reason={msg.stop_reason} blocks={blocks} usage={msg.usage}",
           file=sys.stderr)
@@ -130,6 +139,9 @@ def main():
     print(sheet)
     print("\n" + "=" * 70)
     print(f"saved -> {a.out} · assets shown {len(assets)} · dropped {dropped}", file=sys.stderr)
+    if not sheet.strip():
+        print("FAILED: empty sheet (see [api] line above)", file=sys.stderr)
+        sys.exit(3)  # never report success on empty output
 
 
 if __name__ == "__main__":

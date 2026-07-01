@@ -6,8 +6,11 @@ set -uo pipefail
 
 FOLDER_URL="${MARGAUX_TEST_FOLDER:-https://drive.google.com/drive/folders/1-a3hclOTFGm03Q6ESxU9kOEQOlzJZ8r4}"
 
+if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -f .key ]; then
+  export ANTHROPIC_API_KEY="$(tr -d '[:space:]' < .key)"
+fi
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-  echo "!! Set ANTHROPIC_API_KEY first:  export ANTHROPIC_API_KEY='sk-ant-...'"; exit 2
+  echo "!! No API key. Put it in a file once:  echo 'sk-ant-...' > .key   then rerun."; exit 2
 fi
 
 echo "=== python venv + deps (headless, server-safe) ==="

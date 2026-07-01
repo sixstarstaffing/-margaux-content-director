@@ -108,10 +108,18 @@ def main():
     print(f"sending {len(assets)} frames to {a.model} as Margaux's brain...", file=sys.stderr)
     client = anthropic.Anthropic()
     msg = client.messages.create(
-        model=a.model, max_tokens=8000,
+        model=a.model, max_tokens=16000,
         system="You are MARGAUX, a content director. Follow this brain exactly:\n" + brain,
         messages=[{"role": "user", "content": content}])
-    sheet = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
+    blocks = [getattr(b, "type", "?") for b in msg.content]
+    print(f"[api] stop_reason={msg.stop_reason} blocks={blocks} usage={msg.usage}",
+          file=sys.stderr)
+    sheet = "".join(getattr(b, "text", "") for b in msg.content
+                    if getattr(b, "type", "") == "text")
+    if not sheet.strip():
+        print("[api] EMPTY text returned. Raw content repr (first 2000 chars):",
+              file=sys.stderr)
+        print(repr(msg.content)[:2000], file=sys.stderr)
 
     Path(a.out).write_text(sheet)
     print("\n" + "=" * 70 + "\nMARGAUX ROUTING SHEET (real run)\n" + "=" * 70 + "\n")

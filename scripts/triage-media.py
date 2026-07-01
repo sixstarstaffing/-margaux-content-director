@@ -341,7 +341,9 @@ def process_video(video, out, caps, aes, blur_thresh, scenes_max,
     # transcript ONLY when whisper is actually available. Don't waste a full-audio
     # silencedetect decode per clip (16 clips = the whole slowdown) when we can't
     # transcribe anyway.
-    if use_whisper and caps["whisper"]:
+    # only transcribe SHORT clips (<=40MB), talking-head lives there. Large/long
+    # process videos skip whisper so CPU transcription never grinds the run.
+    if use_whisper and caps["whisper"] and not big:
         sr = speech_ratio(str(video))
         if sr > 0.15:
             with tempfile.TemporaryDirectory() as wd:

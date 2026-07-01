@@ -316,19 +316,22 @@ def process_video(video, out, caps, aes, blur_thresh, scenes_max,
         rec["verdict"] = "auto-rejected"
         rec["notes"].append("all scene frames failed blur/exposure gate")
 
-    # transcript only if there is real speech
-    sr = speech_ratio(str(video))
-    if use_whisper and caps["whisper"] and sr > 0.15:
-        with tempfile.TemporaryDirectory() as wd:
-            try:
-                rec["transcript"] = transcribe(str(video), whisper_bin, model, wd)
-                rec["notes"].append(f"transcribed (speech_ratio {sr:.2f})")
-            except Exception as ex:
-                rec["notes"].append(f"transcription failed: {ex}; visuals only")
-    elif sr > 0.15:
-        rec["notes"].append("speech present but whisper unavailable, scored on visuals only")
+    # transcript ONLY when whisper is actually available. Don't waste a full-audio
+    # silencedetect decode per clip (16 clips = the whole slowdown) when we can't
+    # transcribe anyway.
+    if use_whisper and caps["whisper"]:
+        sr = speech_ratio(str(video))
+        if sr > 0.15:
+            with tempfile.TemporaryDirectory() as wd:
+                try:
+                    rec["transcript"] = transcribe(str(video), whisper_bin, model, wd)
+                    rec["notes"].append(f"transcribed (speech_ratio {sr:.2f})")
+                except Exception as ex:
+                    rec["notes"].append(f"transcription failed: {ex}; visuals only")
+        else:
+            rec["notes"].append("no significant speech, scored on visuals only")
     else:
-        rec["notes"].append("no significant speech, scored on visuals only")
+        rec["notes"].append("whisper unavailable, scored on visuals only")
     return rec
 
 

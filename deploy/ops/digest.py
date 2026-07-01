@@ -43,7 +43,8 @@ if wh:
     try:
         urllib.request.urlopen(urllib.request.Request(
             wh, data=json.dumps({"content": msg}).encode(),
-            headers={"Content-Type": "application/json"}), timeout=15)
+            headers={"Content-Type": "application/json",
+                     "User-Agent": "Margaux/1.0 (content-director)"}), timeout=15)
         print("digest posted to Discord")
     except Exception as e:
         print(f"digest post failed: {e}\n{msg}")

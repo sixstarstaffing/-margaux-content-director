@@ -18,7 +18,9 @@
 set -uo pipefail
 
 LINK="${1:?usage: sync-drive.sh <drive_folder_link_or_id> [out_dir] [remote]}"
-OUT="${2:-$HOME/content-inbox/$(date +%Y-%m-%d 2>/dev/null || echo drive-pull)}"
+# Production: MARGAUX_WORKDIR is set on the VPS so pulls land in the capped workdir,
+# not the service user's $HOME. Falls back to $HOME/content-inbox for local dev.
+OUT="${2:-${MARGAUX_WORKDIR:-$HOME/content-inbox}/$(date +%Y-%m-%d 2>/dev/null || echo drive-pull)}"
 REMOTE="${3:-}"
 
 # --- extract the folder ID from a link (or accept a bare ID) ---

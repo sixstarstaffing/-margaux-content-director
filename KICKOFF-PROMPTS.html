@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Margaux Build Sprint · Terminal Prompts</title>
+<style>
+  :root{ --ink:#1a1715; --cream:#F4EFE6; --brass:#9c7b46; --line:#d9cdb8; --fs:20px; }
+  *{box-sizing:border-box}
+  html{font-size:var(--fs)}
+  body{margin:0;background:var(--cream);color:var(--ink);line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .bar{position:sticky;top:0;z-index:5;display:flex;gap:.6rem;align-items:center;
+    justify-content:flex-end;padding:.55rem 1.2rem;background:var(--ink)}
+  .bar span{color:var(--cream);margin-right:auto;font-weight:600;font-size:.85rem}
+  .bar button{font-size:1rem;font-weight:700;cursor:pointer;border:0;border-radius:.4rem;
+    background:var(--brass);color:#fff;padding:.45rem .8rem;line-height:1}
+  .bar button:hover{background:#85673a}
+  .wrap{max-width:60rem;margin:0 auto;padding:1.6rem 1.2rem 4rem}
+  h1{font-size:2.2rem;margin:.3rem 0 .2rem}
+  .lead{font-size:1.05rem;margin:.4rem 0 1.2rem}
+  .order{background:#fff7e9;border:2px solid var(--brass);border-radius:.7rem;padding:1rem 1.2rem;margin:1rem 0;font-size:1.05rem}
+  .order b{color:#85673a}
+  .card{background:#fff;border:1px solid var(--line);border-radius:.7rem;margin:1.3rem 0;overflow:hidden}
+  .card.first{border:3px solid var(--brass)}
+  .head{display:flex;align-items:center;gap:.6rem;padding:.8rem 1.1rem;background:#faf6ef;border-bottom:1px solid var(--line)}
+  .head h2{font-size:1.25rem;margin:0}
+  .tag{background:var(--brass);color:#fff;font-size:.75rem;font-weight:700;padding:.2rem .55rem;border-radius:1rem}
+  .tag.go{background:#127807}
+  .copy{margin-left:auto;font-size:.95rem;font-weight:700;cursor:pointer;border:0;border-radius:.4rem;background:var(--ink);color:#fff;padding:.45rem .9rem}
+  .copy:hover{background:#000}
+  .copy.done{background:#127807}
+  pre{margin:0;padding:1rem 1.1rem;white-space:pre-wrap;word-break:break-word;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.95rem;line-height:1.55}
+  @media print{.bar,.copy{display:none}}
+</style>
+</head>
+<body>
+<div class="bar"><span>Text size</span>
+  <button onclick="bump(-1)">A−</button><button onclick="bump(1)">A+</button></div>
+<div class="wrap">
+  <h1>Margaux Build Sprint · Terminal Prompts</h1>
+  <div class="lead">One paste per terminal. Click <b>Copy</b>, open a terminal on your PC, paste. The AI in that terminal does the rest.</div>
+  <div class="order"><b>LAUNCH ORDER:</b> 1) Open the <b>Command Center FIRST</b> (green, below). 2) Then <b>T1 (secrets)</b> and <b>T2 (schema)</b>. 3) Then T3 to T8 once the Command Center says the schema is frozen.</div>
+  <div id="cards"></div>
+</div>
+<script>
+const P = {};
+P.cc = `You are the Command Center for the Margaux build sprint. You open FIRST, before any contractor terminal, and coordinate the whole build.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md fully. You coordinate, you do NOT build workstreams.
+3. Give Kailin the go: tell her to open T1 (WS0 secrets) and T2 (WS1 schema) next. Announce when WS0 + WS1 are ready so WS2-WS7 can start.
+4. Guard RULE #1: if any terminal reports needing a file on Kailin's Mac, flag it as the POZD failure and stop it.
+5. Run the rollup on a cadence and after each milestone: python deploy/sprint/rollup.py (git-pulls all logs, posts one consolidated status to Kailin's #build-updates). Keep logs/COMMAND-CENTER-LOG.md.
+6. Surface blockers to Kailin immediately.`;
+P.t1 = `You are contractor terminal T1 (WS0, Secrets) on the Margaux build sprint.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md and deploy/sprint/TERMINAL-BOOTSTRAP.md. RULE #1: never use a file on Kailin's Mac; everything is in this clone.
+3. WS0: ROTATE the leaked Blotato key first. Provision the .env on the Hostinger Hermes VPS from deploy/.env.template: Anthropic, Supabase service+anon, Discord bot token + webhooks, rclone Drive headless OAuth, WORKER_SHARED_SECRET, N8N_CALLBACK_URL. Store in n8n credentials + Supabase Vault. Never commit .env, never a Mac file.
+4. Acceptance: no secret in git; a fresh terminal gets TEST creds from the shared store without a Mac file.
+5. Report: python deploy/sprint/report.py --ws WS0 --status started --pct 0 --msg "rotating Blotato + secrets" --push`;
+P.t2 = `You are contractor terminal T2 (WS1, Supabase schema) on the Margaux build sprint.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md + deploy/sprint/TERMINAL-BOOTSTRAP.md. RULE #1: no Mac files.
+3. WS1: apply deploy/schema/001_init.sql then 002_rls.sql to Supabase. Create Storage bucket margaux-frames. Verify enums, FKs, indexes, idempotency uniques, RLS. This schema is a FROZEN contract; tell Command Center when merged.
+4. Acceptance: migration applies clean on a fresh Supabase; frozen + versioned.
+5. Report: python deploy/sprint/report.py --ws WS1 --status started --pct 0 --msg "applying schema" --push  (announce FROZEN when done)`;
+P.t3 = `You are contractor terminal T3 (WS2, VPS worker). Do NOT start until Command Center says WS0 + WS1 are ready.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md, MARGAUX-DEPLOY.md, deploy/API-CONTRACTS.md. RULE #1: no Mac files.
+3. WS2: on Hermes install ffmpeg/opencv/pillow-heif/scenedetect/rclone + whisper. Build the worker (POST /jobs, GET /jobs/{id}, cancel per API-CONTRACTS): sync-drive.sh, triage-media.py, Claude API using SKILL.md as prompt, write Supabase, delete media. Add heartbeat + reconciler + retry + disk cap.
+4. Acceptance: python scripts/triage-media.py --selftest green on Hermes; one real E2E job writes assets+verdicts.
+5. Report: python deploy/sprint/report.py --ws WS2 --status started --pct 0 --msg "worker skeleton" --push`;
+P.t4 = `You are contractor terminal T4 (WS3, n8n). Wait for WS1 + the WS2 worker API.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md + deploy/API-CONTRACTS.md. RULE #1: no Mac files.
+3. WS3: build the n8n trigger flow (Drive link -> POST /jobs with the bearer secret) and completion flow (worker callback -> update Supabase, Discord alert, hand approved to WS6).
+4. Acceptance: a submitted link creates a job row and the callback fires.
+5. Report: python deploy/sprint/report.py --ws WS3 --status started --pct 0 --msg "n8n trigger" --push`;
+P.t5 = `You are contractor terminal T5 (WS4, Discord bot). Wait for WS0 + WS2 API.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md + deploy/API-CONTRACTS.md. RULE #1: no Mac files.
+3. WS4: build the bot: paste Drive link -> triggers a job -> posts the routing sheet -> Iris-style tier approvals (tier1 auto / tier2 escalate to Kailin / tier3 reject) that flip approvals.state. Never auto-post.
+4. Acceptance: paste link -> sheet posts -> approve flips approvals.state.
+5. Report: python deploy/sprint/report.py --ws WS4 --status started --pct 0 --msg "discord bot" --push`;
+P.t6 = `You are contractor terminal T6 (WS5, Netlify dashboard). Wait for WS1.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md + deploy/schema/001_init.sql. RULE #1: no Mac files. Forward-facing UI, no builder jargon.
+3. WS5: Netlify page reading Supabase with the ANON key (read-only), rendering the daily sheet + campaign tracker + shotlist per OUTPUT-TEMPLATE.md. Approvals write via the tight RLS policy only.
+4. Acceptance: renders a real job's sheet/tracker/shotlist.
+5. Report: python deploy/sprint/report.py --ws WS5 --status started --pct 0 --msg "dashboard" --push`;
+P.t7 = `You are contractor terminal T7 (WS6, BrandForge export). Wait for WS1.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. ALSO clone the BrandForge repo READ-ONLY to match content-data.js / qa-items.json. Do NOT commit into BrandForge.
+3. Read BUILD-SPRINT.md + MARGAUX-DEPLOY.md (BrandForge section). RULE #1: no Mac files.
+4. WS6: render APPROVED Margaux rows from Supabase into the content-data.js / qa-items.json shape the portal consumes, then the publish path to Blotato with publish-once.
+5. Acceptance: an approved row appears in the test portal and publishes once.
+6. Report: python deploy/sprint/report.py --ws WS6 --status started --pct 0 --msg "brandforge export" --push`;
+P.t8 = `You are contractor terminal T8 (WS7, shared voice). Wait for WS1.
+1. git clone https://github.com/sixstarstaffing/-margaux-content-director.git margaux && cd margaux
+2. Read BUILD-SPRINT.md + PERSONAL-BRAND.md + deploy/voice/plated-defaults-CONTEXT.md. RULE #1: no Mac files.
+3. WS7: load Plated voice (anchor, banned phrases, tiers, CURRENT facts July 30 / Japan-cut) + Kailin's personal pillars+samples into the Supabase voice_profile table so GiGi and Margaux read one source. Do NOT copy the stale July 16 / Japan facts.
+4. Acceptance: both read voice_profile from the DB, not a file.
+5. Report: python deploy/sprint/report.py --ws WS7 --status started --pct 0 --msg "voice into supabase" --push`;
+P.t10 = `Spare / Kailin. Watch #build-updates for contractor pings and the Command Center rollup, tap approvals, answer escalated blockers. No clone needed unless taking over a lane.`;
+
+const CARDS = [
+  ["cc","Command Center","OPEN FIRST",true,true],
+  ["t1","T1 · WS0 · Secrets","start after Command Center",false,false],
+  ["t2","T2 · WS1 · Supabase schema","start after Command Center",false,false],
+  ["t3","T3 · WS2 · VPS worker","wait for WS0+WS1",false,false],
+  ["t4","T4 · WS3 · n8n flows","wait for WS1+WS2",false,false],
+  ["t5","T5 · WS4 · Discord bot","wait for WS0+WS2",false,false],
+  ["t6","T6 · WS5 · Netlify dashboard","wait for WS1",false,false],
+  ["t7","T7 · WS6 · BrandForge export","wait for WS1",false,false],
+  ["t8","T8 · WS7 · Shared voice","wait for WS1",false,false],
+  ["t10","T10 · Spare / Kailin","no clone",false,false],
+];
+const box = document.getElementById("cards");
+CARDS.forEach(([key,title,tag,go,first])=>{
+  const card=document.createElement("div"); card.className="card"+(first?" first":"");
+  const head=document.createElement("div"); head.className="head";
+  const h=document.createElement("h2"); h.textContent=title;
+  const t=document.createElement("span"); t.className="tag"+(go?" go":""); t.textContent=tag;
+  const b=document.createElement("button"); b.className="copy"; b.textContent="Copy";
+  b.onclick=()=>{navigator.clipboard.writeText(P[key]).then(()=>{b.textContent="Copied";b.classList.add("done");setTimeout(()=>{b.textContent="Copy";b.classList.remove("done")},1400)})};
+  head.append(h,t,b);
+  const pre=document.createElement("pre"); pre.textContent=P[key];
+  card.append(head,pre); box.append(card);
+});
+let fs=20; function bump(d){fs=Math.max(15,Math.min(32,fs+d*2));document.documentElement.style.setProperty('--fs',fs+'px')}
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+.env
+*.env
+secrets/
+_triage/
+content-inbox/
+frames-*/
+*.mp4
+*.mov
+*.heic
+__pycache__/

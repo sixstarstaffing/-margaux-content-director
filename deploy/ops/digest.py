@@ -8,7 +8,11 @@ Env:   DISCORD_BUILD_WEBHOOK (where the digest goes; prints if unset)
 """
 import json, os, re, sys, urllib.request
 
-sheet = open(sys.argv[1]).read() if len(sys.argv) > 1 else sys.stdin.read()
+# --text = print the digest to stdout only (no webhook). The Discord bot uses this to
+# post the digest into the channel Kailin asked in.
+TEXT_ONLY = "--text" in sys.argv
+args = [a for a in sys.argv[1:] if a != "--text"]
+sheet = open(args[0]).read() if args else sys.stdin.read()
 
 # day header ("# Content Director · <date> · <n> days to July 30")
 hdr = re.search(r"^#\s*Content Director\s*·\s*(.+)$", sheet, re.M)
@@ -39,7 +43,9 @@ lines += ["", "_reply 'full' for captions + the editor handoff_"]
 msg = "\n".join(x for x in lines if x is not None)[:1900]
 
 wh = os.environ.get("DISCORD_BUILD_WEBHOOK", "").strip()
-if wh:
+if TEXT_ONLY:
+    print(msg)
+elif wh:
     try:
         urllib.request.urlopen(urllib.request.Request(
             wh, data=json.dumps({"content": msg}).encode(),

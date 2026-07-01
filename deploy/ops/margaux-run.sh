@@ -18,7 +18,11 @@ git fetch -q origin && git reset -q --hard origin/main
 
 # 2) config + secrets from .env.margaux (ALWAYS, so folder-id / api key / webhook
 #    all load), then .key as an API-key fallback. Never pasted again.
+#    A folder passed IN the environment (e.g. the Discord bot handing us the link
+#    Kailin just posted) must WIN over the default in the file, so capture it first.
+PRESET_FOLDER="${MARGAUX_DAILY_FOLDER_ID:-}"
 [ -f .env.margaux ] && { set -a; . ./.env.margaux; set +a; }
+[ -n "$PRESET_FOLDER" ] && export MARGAUX_DAILY_FOLDER_ID="$PRESET_FOLDER"
 if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -f .key ]; then
   export ANTHROPIC_API_KEY="$(tr -d '[:space:]' < .key)"
 fi
@@ -64,6 +68,10 @@ OUT="sheets/routing-sheet-$(date +%F-%H%M).md"
 log "running Margaux -> $OUT"
 python deploy/sprint/test-run.py --folder flat --out "$OUT"
 
-# 6) deliver the 10-SECOND DIGEST to Kailin (the full sheet stays for the editor)
-python deploy/ops/digest.py "$OUT" || true
+# 6) deliver the 10-SECOND DIGEST to Kailin (the full sheet stays for the editor).
+#    The Discord bot sets MARGAUX_SKIP_WEBHOOK=1 so it can post the digest into the
+#    SAME channel Kailin asked in, instead of the separate build webhook.
+if [ -z "${MARGAUX_SKIP_WEBHOOK:-}" ]; then
+  python deploy/ops/digest.py "$OUT" || true
+fi
 log "DONE. sheet: $REPO/$OUT"

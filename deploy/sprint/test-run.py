@@ -150,6 +150,12 @@ def main():
         "footage, mark it an assumption / shotlist item.\n"
         "A 'CREATOR NOTE' is Kailin telling you exactly who/what is in the clip = GROUND TRUTH, "
         "use it and never contradict it. A 'TRANSCRIPT' is what is actually said in the clip."}]
+    from datetime import date
+    _today = date.today(); _days = (date(2026, 7, 30) - _today).days
+    content.append({"type": "text", "text":
+        f"Today is {_today:%A, %B %d, %Y} ({_days} days to the July 30 event). Use these "
+        f"REAL values in the sheet header and anywhere a date/countdown appears. NEVER "
+        f"output a literal {{DATE}} or any placeholder token."})
     frame_budget = a.max_images
     sent, shown = 0, 0
     for _, r, frs in ranked:

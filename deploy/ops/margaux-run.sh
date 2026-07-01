@@ -61,14 +61,6 @@ OUT="sheets/routing-sheet-$(date +%F-%H%M).md"
 log "running Margaux -> $OUT"
 python deploy/sprint/test-run.py --folder flat --out "$OUT"
 
-# 6) optional: deliver a heads-up to Discord so you never open the terminal
-if [ -n "${DISCORD_BUILD_WEBHOOK:-}" ]; then
-  HEAD="$(sed -n '1,12p' "$OUT")"
-  python - "$DISCORD_BUILD_WEBHOOK" "$OUT" "$HEAD" <<'PY' 2>/dev/null || true
-import json,sys,urllib.request
-wh,out,head=sys.argv[1],sys.argv[2],sys.argv[3]
-msg=f"**Margaux sheet ready** ({out})\n```\n{head[:1600]}\n```"
-urllib.request.urlopen(urllib.request.Request(wh,data=json.dumps({"content":msg}).encode(),headers={"Content-Type":"application/json"}),timeout=15)
-PY
-fi
+# 6) deliver the 10-SECOND DIGEST to Kailin (the full sheet stays for the editor)
+python deploy/ops/digest.py "$OUT" || true
 log "DONE. sheet: $REPO/$OUT"

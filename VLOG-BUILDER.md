@@ -6,8 +6,12 @@
 Client wants a narrated video: a tickets/offer vlog, a founder story, a "how it's made," a passport/product reveal. Anytime there's a VOICEOVER or script + a pile of footage. (For a raw talking-head where they film themselves talking, that's Captions.ai auto-caption territory, not this.)
 
 ## THE 8-STEP PROCESS
-### 1. SCRIPT / VOICEOVER FIRST (the spine)
-The voiceover is the backbone. Either the client records it word-for-word (they rehearse, not improvise), or write it in their voice via the `copywriter` skill (VOC, no em-dashes, one CTA, keyword-rich for SEO). Keep it real and casual. Trim dead air + Studio Sound it (Descript).
+### 1. VOICEOVER = THE HUMAN FACTOR (the spine). The script is a STARTER, not a teleprompter.
+The voiceover is the backbone AND the human factor that turns cold AI anchor clips into a real vlog. Even minimal voice does it.
+- Write a script in their voice via the `copywriter` skill as a STARTER. Be honest: a tight AI script read verbatim comes out too cold and narrow. Do NOT hand it over as a teleprompter.
+- THE MOVE THAT WORKS: the client looks at the script AND the anchor videos together, then talks through it NATURALLY, in sequence, in their own words. Looser, warmer, real. This reconciles "rehearse not wing it": the script gives them the content + structure so they are not blank, but they DELIVER it conversationally, not robotically.
+- Why this matters for the edit: natural narration runs longer and has natural beats, which AUTOMATICALLY OPENS THE SPACE where b-roll drops in. A cold 15s script leaves no room; a natural 40-45s narration paints the full picture and self-creates the b-roll gaps.
+- Then trim dead air + Studio Sound it (Descript).
 
 ### 2. B-ROLL MAP (the core move)
 Break the VO into BEATS, one per sentence/idea. For EACH beat, name the exact clip that shows what they're saying. Deliver a timecode table: `beat / ~time / the line / the b-roll clip / on-screen note`. This is what makes it feel intentional, not stock.
@@ -37,11 +41,23 @@ Before ship, score it: (a) does every b-roll clip match its VO line, (b) hook in
 ### 8. ROUTE (personal-first)
 Feed vs story vs highlight. Evergreen offers (tickets, tiers) = a HIGHLIGHT that lives on the profile + a feed post. Time-sensitive pushes = feed + story. Tie goes to the personal/founder brand.
 
+## WHEN SHORT ON REAL / FACE FOOTAGE (anchor-first path)
+Not every client has a pile of real footage or wants to be on camera. In that case, ANCHOR the vlog on 3-4 AI/Luma highlight-pack clips (4-5 sec each), the "highlight pack" (e.g. the Plated country/tickets packs generated from Sevyn's Higgsfield prompt pack). Those anchors ARE the backbone. Then:
+- Add the human factor with a natural voiceover (step 1), that voice is what turns 4 silent AI clips into a real vlog. Even voice-only, no face, works.
+- The natural narration over the anchors opens the gaps, drop whatever real b-roll they DO have into those gaps; if they have none, the anchors + stills carry it.
+- So the minimum viable vlog = 3-4 anchor clips + a natural voiceover. Real b-roll makes it better but is not required to ship.
+
 ## TOOL RULES (memorize)
 - **Descript** = voiceover + b-roll vlogs. **Captions.ai** = talking-head. **Luma** = stills -> motion only. Real footage = never AI'd.
 
-## REFERENCE IMPLEMENTATION
-The Plated tickets vlog (2026-07-01): 45s VO -> b-roll map (`_Plated/TICKETS-VLOG-BROLL-MAP.txt`) -> Luma-animated ticket slides as anchors + real passport/rooftop b-roll -> one Drive folder -> Descript assemble -> caption via copywriter -> shipped. Passport vlog uses the same process.
+## REFERENCE IMPLEMENTATION + ORIGIN (how this method was discovered)
+The Plated tickets vlog (2026-07-01), the exact chain that birthed this skill:
+1. Sevyn created a Higgsfield HIGHLIGHT PROMPT PACK -> used it to generate the highlight videos (4-5 sec each: tickets slides, country packs).
+2. Those AI clips were cold on their own, they needed a HUMAN FACTOR, even if only voice.
+3. So Kailin recorded a VOICEOVER. The tight script the AI first gave was "way too cold and narrow" but a GREAT STARTER.
+4. She then looked at the script AND the videos and just EXPLAINED IN SEQUENCE NATURALLY, in her own words. That natural narration warmed it up AND automatically created the space for b-roll.
+5. Mapped the natural VO to footage (`_Plated/TICKETS-VLOG-BROLL-MAP.txt`): Luma-animated ticket slides as anchors + real passport/rooftop b-roll in the gaps -> one numbered Drive folder -> Descript assemble -> caption via copywriter -> shipped 44s.
+The lesson baked into this skill: anchors give the backbone, the natural (not robotic) voiceover is the human factor + it self-creates the b-roll space. The passport vlog uses the same process.
 
 ## PER-CLIENT
 This process is client-agnostic. Swap in each client's brand kit, voice source, and footage. Living skill, refine it as we learn what converts per client + industry (same standing directive as the copywriter skill).

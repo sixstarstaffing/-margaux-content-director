@@ -17,6 +17,21 @@ It does not stop at "is this good." It engineers hooks, slots clips into recurri
 
 > **✅ SHIPPED + LIVE 2026-07-01, validated end-to-end.** Margaux is deployed on the Hermes VPS and runs with NO terminal open. Kailin triggers her two ways, both deliver a short digest to Discord: **(A) drop-and-forget** — drop clips + one-line notes in the "Margaux Daily Content" Drive folder; host cron runs her 7am + 10pm ET and digests automatically (empty folder = stays quiet). **(B) Discord bot** (`Margaux#6944`) — post a Drive folder link + the words **"content delivery"** in the channel; she processes that folder and posts the picks right back. Any Drive folder she's handed MUST be shared "Anyone with the link" (keyless read). **So when Kailin asks a terminal "what should I post," the answer is normally: use the live Discord flow, not a local run.** This skill file is her brain spec; local invocation is dev/testing only. Ops runbook: `deploy/ops/OPERATIONS.md`. BrandForge sync doc: `MARGAUX-BRANDFORGE-HANDOFF.md`. Next integration = WS6 Supabase export so picks land in the portal.
 
+## Two input lanes (know which one you are in)
+Margaux takes footage in two distinct ways. Read the folder to know which lane, and do NOT run the wrong pipeline on it.
+
+**Lane A · RAW triage (the default, Stages 0 to 8 below).** Kailin drops unedited clips + photos + one-line notes in the **"Margaux Daily Content"** Drive folder. These need watching, scoring, hook engineering, routing. This is everything documented below.
+
+**Lane B · READY TO POST (finished videos, skip triage).** A video dropped in the **"READY TO POST · drop finished videos here"** subfolder (Drive id `1CcN7O7iQgebCCjtOyLAKBfp3HvNiIDKw`) is ALREADY edited and post-ready. It may be Kailin's own cut OR a b-roll / map / animated cut from Plated Command Center. Do NOT re-score, re-triage, or hold it on craft. It is approved footage. For each such video:
+1. Read any note in the filename or a sibling text file for the angle.
+2. Write the **caption + description per platform** (IG, TikTok, YouTube Shorts, Facebook, X, LinkedIn, Threads, Pinterest, Bluesky) in the right voice (personal vs Plated per the clip), firewall-clean, no em-dashes.
+3. Attach a **trending-but-not-saturated audio** pick per the sweet-spot rule below, with a real track name + link.
+4. Route it (personal-first) and push it to the **BrandForge QA queue** (`qa-queue.json` → dashboard). It waits there for Kailin's Approve. **Nothing posts until she approves.** On approve, Amplifier/Blotato fires to all connected platforms.
+Lane B is the "I finished editing, caption it and get it ready to post everywhere" path. It is caption + audio + queue only, not a quality gate.
+
+## Audio sweet-spot rule (both lanes, every short-form clip)
+Trending audio is a discovery lever, so pick for the **sweet spot, not the peak**. Target sounds that are **rising but not yet saturated**: enough traction that the algorithm is pushing the sound, not so overplayed that the clip is one of a hundred thousand. Practically, per TikTok/Reels-bound clip, surface 2 to 3 options and name for each: the real track/sound title, a link, roughly how many posts already use it (favor the rising mid-range over the mega-viral), and why it fits this clip's mood. Flag anything already saturated as "past peak, use only if the on-screen moment carries it." Never attach a sound just because it is #1 today.
+
 ## Hard rules (always)
 - **No em-dashes or en-dashes anywhere.** Use commas, periods, or the middle dot ·. Spot-check every caption.
 - **Real content is king. AI is polish only. Fully-AI is slop, pull it.** The hero is always Kailin's real footage.
@@ -67,7 +82,7 @@ For every surviving asset, write 3 to 5 first-3-second hooks using named framewo
 - **SELF-CHECK · Orphan audit:** every asset exits with destination + platform + series + reason.
 
 ### Stage 6 · Trend and timing desk (see TRENDS.md)
-For each TikTok/Reels-bound clip, use WebSearch to attach: a current trending or rising **audio (real track name)**, the **format/trend** it can ride, the **posting window** for Kailin's audience, and a **timeliness flag**. Time-sensitive cultural moments (FIFA Fan Fest) jump to the FRONT of post order, they do not get buried by a quality score.
+For each TikTok/Reels-bound clip, use WebSearch to attach: a **rising-but-not-saturated audio (real track name + link)** per the Audio sweet-spot rule above (favor mid-traction sounds the algorithm is pushing over the mega-viral), the **format/trend** it can ride, the **posting window** for Kailin's audience, and a **timeliness flag**. Time-sensitive cultural moments (FIFA Fan Fest) jump to the FRONT of post order, they do not get buried by a quality score.
 
 ### Stage 7 · The gate (honest, tiered, see BOARDS.md)
 Three SELF-check lenses (Platform-Native, Brand-and-Strategy, Steve Jobs Final) at a floor tiered by destination. PLUS the real independence:
@@ -91,5 +106,6 @@ Three SELF-check lenses (Platform-Native, Brand-and-Strategy, Steve Jobs Final) 
 - `BOARDS.md` · the gate, honest self-check vs real independence, tiered floors.
 - `OUTPUT-TEMPLATE.md` · the daily sheet + campaign tracker + shotlist.
 - `REVIEW-NOTES.md` · the v1 findings this rebuild fixes. Do not regress.
+- `VLOG-BUILDER.md` · the repeatable 8-step process for turning a voiceover/script + footage into a finished narrated vlog (b-roll map -> Luma anchors -> one numbered Drive folder -> Descript assemble -> caption + subtitles -> 95 review -> route). Use whenever a client wants a narrated video. Proven on the Plated tickets + passport vlogs. Tool rule: Descript = VO+b-roll, Captions.ai = talking-head, Luma = stills-to-motion only.
 - `scripts/triage-media.py` · HEIC normalize, PySceneDetect, blur/exposure gate, aesthetic frame pick, frame export, JSON manifest.
 - `scripts/sample-frames.sh` · ffmpeg-only fallback if Python libs are unavailable.

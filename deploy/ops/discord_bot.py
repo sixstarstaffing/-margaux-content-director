@@ -65,7 +65,21 @@ async def on_message(msg):
         return
     if ONLY_CHANNEL and str(msg.channel.id) != ONLY_CHANNEL:
         return
-    text = (msg.content or "").lower()
+    text = (msg.content or "").strip().lower()
+
+    # "full" -> upload the full routing sheet (captions + editor handoff), the thing
+    # the digest promises. Kept short so a normal sentence doesn't trigger it.
+    if text in ("full", "reply full", "margaux full", "@margaux full") or \
+       (text.startswith("full") and len(text) <= 8):
+        sheet = newest_sheet()
+        if sheet:
+            await msg.channel.send(
+                "Full routing sheet, captions + editor handoff:",
+                file=discord.File(sheet, filename="margaux-routing-sheet.md"))
+        else:
+            await msg.channel.send("No sheet yet, send a folder with 'content delivery' first.")
+        return
+
     if "content delivery" not in text:
         return
     fid = folder_id(msg.content)
